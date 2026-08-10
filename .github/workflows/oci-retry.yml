@@ -1,0 +1,41 @@
+name: OCI Auto Retry — Ampere A1
+
+on:
+  schedule:
+    - cron: '*/20 * * * *'   # thử lại mỗi 20 phút (giãn ra để tránh bị Oracle rate-limit)
+  workflow_dispatch: {}       # cho phép bấm "Run workflow" thủ công để test ngay
+
+permissions:
+  contents: read
+
+concurrency:
+  group: oci-retry
+  cancel-in-progress: false
+
+jobs:
+  retry:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - run: pip install -r requirements.txt
+
+      - name: Thử tạo Ampere A1 instance
+        env:
+          OCI_USER_OCID:            ${{ secrets.OCI_USER_OCID }}
+          OCI_FINGERPRINT:          ${{ secrets.OCI_FINGERPRINT }}
+          OCI_TENANCY_OCID:         ${{ secrets.OCI_TENANCY_OCID }}
+          OCI_REGION:               ${{ secrets.OCI_REGION }}
+          OCI_SUBNET_ID:            ${{ secrets.OCI_SUBNET_ID }}
+          OCI_AVAILABILITY_DOMAIN:  ${{ secrets.OCI_AVAILABILITY_DOMAIN }}
+          OCI_PRIVATE_KEY:          ${{ secrets.OCI_PRIVATE_KEY }}
+          OCI_SSH_PUBLIC_KEY:       ${{ secrets.OCI_SSH_PUBLIC_KEY }}
+          TELEGRAM_BOT_TOKEN:       ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID:         ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: python retry_oci.py
